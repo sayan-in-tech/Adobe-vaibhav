@@ -4,70 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Outline Extractor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            background: #181a1b;
-            color: #f1f1f1;
-            font-family: 'Segoe UI', Arial, sans-serif;
+        :root {
+            --bg-main: #0a0c10;
+            --bg-card: #13151a;
+            --accent: #1de9b6;
+            --accent-faint: #1de9b622;
+            --text-main: #e0e0e0;
+            --text-muted: #7f8fa6;
+            --border-dark: #23262e;
+            --border-accent: #1de9b6;
+            --transition: 0.22s cubic-bezier(.4,2,.6,1);
+        }
+        html, body {
+            height: 100%;
             margin: 0;
             padding: 0;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Montserrat', Arial, sans-serif;
+        }
+        body {
+            min-height: 100vh;
+            min-width: 100vw;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            box-sizing: border-box;
+            overflow-x: hidden;
         }
         .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: #23272b;
-            border-radius: 12px;
-            box-shadow: 0 2px 16px #000a;
-            padding: 32px 24px 24px 24px;
+            background: var(--bg-card);
+            border-radius: 18px;
+            box-shadow: 0 0 16px 0 #000a;
+            padding: 38px 28px 28px 28px;
+            max-width: 480px;
+            width: 100%;
+            margin: 40px 0 40px 0;
+            border: 1.5px solid var(--border-dark);
+            position: relative;
+            z-index: 2;
         }
         h1 {
             text-align: center;
-            color: #e0e0e0;
-            margin-bottom: 24px;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--text-main);
+            margin-bottom: 28px;
         }
         label {
             display: block;
-            margin-bottom: 8px;
-            color: #bdbdbd;
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 1px;
         }
-        input[type="file"] {
-            background: #23272b;
-            color: #f1f1f1;
-            border: 1px solid #444;
-            border-radius: 6px;
-            padding: 8px;
-            width: 100%;
-            margin-bottom: 16px;
+        /* Custom file input styles */
+        .file-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: #181a1f;
+            border: 1.5px solid var(--border-dark);
+            border-radius: 8px;
+            padding: 0 0.5em 0 0.5em;
+            margin-bottom: 20px;
+            height: 48px;
+            position: relative;
+            transition: border-color var(--transition), box-shadow var(--transition);
         }
-        button {
-            background: #0078d4;
-            color: #fff;
+        .file-input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-faint);
+        }
+        .file-input {
+            display: none;
+        }
+        .file-label {
+            background: var(--accent);
+            color: #10131a;
             border: none;
             border-radius: 6px;
-            padding: 10px 20px;
+            padding: 10px 18px;
             font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin-right: 1em;
+            transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+            box-shadow: 0 0 0 0 var(--accent-faint);
+        }
+        .file-label:hover, .file-label:focus {
+            background: #23ffd4;
+            color: #0a0c10;
+            outline: none;
+        }
+        .file-name {
+            color: var(--text-main);
+            font-size: 1rem;
+            font-family: 'Fira Mono', 'Consolas', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+        button {
+            background: var(--accent);
+            color: #10131a;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 0;
+            width: 100%;
+            font-size: 1.08rem;
+            font-weight: 700;
+            letter-spacing: 1px;
             cursor: pointer;
             margin-top: 8px;
-            transition: background 0.2s;
+            box-shadow: 0 0 0 0 var(--accent-faint);
+            transition: background var(--transition), color var(--transition), box-shadow var(--transition), filter var(--transition);
         }
         button:disabled {
-            background: #444;
+            filter: grayscale(0.7) brightness(0.7);
             cursor: not-allowed;
+            box-shadow: none;
+            background: #23262e;
+            color: #888;
         }
         button:hover:not(:disabled) {
-            background: #005fa3;
+            background: #23ffd4;
+            color: #0a0c10;
+            box-shadow: 0 0 8px 0 var(--accent-faint);
         }
         .output-box {
-            background: #181a1b;
-            color: #e0e0e0;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 24px;
+            background: #0a0c10;
+            color: var(--accent);
+            border: 1.5px solid var(--border-dark);
+            border-radius: 10px;
+            padding: 16px 12px;
+            margin-top: 28px;
             min-height: 120px;
+            max-height: 320px;
+            overflow-y: auto;
             font-family: 'Fira Mono', 'Consolas', monospace;
+            font-size: 1.01rem;
             white-space: pre-wrap;
             word-break: break-all;
+            box-shadow: 0 0 0 0 var(--accent-faint);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .output-box.error {
+            color: #ff4f8b;
+            border-color: #ff4f8b;
+            box-shadow: 0 0 8px 0 #ff4f8b22;
         }
         .download-link {
             display: block;
@@ -75,22 +164,27 @@
             text-align: right;
         }
         .download-link a {
-            color: #4fc3f7;
+            color: var(--accent);
             text-decoration: none;
             font-weight: bold;
+            font-size: 1.08rem;
+            letter-spacing: 1px;
+            transition: color var(--transition), text-shadow var(--transition);
         }
         .download-link a:hover {
-            text-decoration: underline;
+            color: #23ffd4;
+            text-shadow: 0 0 8px var(--accent-faint);
         }
         .spinner {
-            border: 4px solid #23272b;
-            border-top: 4px solid #0078d4;
+            border: 4px solid #23262e;
+            border-top: 4px solid var(--accent);
             border-radius: 50%;
             width: 32px;
             height: 32px;
             animation: spin 1s linear infinite;
-            margin: 24px auto;
+            margin: 28px auto 0 auto;
             display: none;
+            box-shadow: none;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -99,14 +193,27 @@
         .center {
             text-align: center;
         }
+        @media (max-width: 600px) {
+            .container {
+                padding: 18px 3vw 12px 3vw;
+                max-width: 99vw;
+            }
+            h1 {
+                font-size: 1.1rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>PDF Outline Extractor</h1>
-        <form id="uploadForm">
-            <label for="pdfFile">Select PDF to upload:</label>
-            <input type="file" id="pdfFile" name="pdfFile" accept="application/pdf" required />
+        <form id="uploadForm" autocomplete="off">
+            <label for="pdfFile">Select PDF to upload</label>
+            <div class="file-input-wrapper">
+                <label for="pdfFile" class="file-label" tabindex="0">Choose File</label>
+                <input type="file" id="pdfFile" class="file-input" name="pdfFile" accept="application/pdf" required />
+                <span class="file-name" id="fileName">No file chosen</span>
+            </div>
             <button type="submit" id="uploadBtn">Upload & Extract</button>
         </form>
         <div class="center">
@@ -122,12 +229,26 @@
         const downloadLink = document.getElementById('downloadLink');
         const spinner = document.getElementById('spinner');
         const uploadBtn = document.getElementById('uploadBtn');
+        const fileNameSpan = document.getElementById('fileName');
+        const fileLabel = document.querySelector('.file-label');
+
+        // Show selected file name
+        pdfFile.addEventListener('change', function() {
+            fileNameSpan.textContent = pdfFile.files.length ? pdfFile.files[0].name : 'No file chosen';
+        });
+        // Keyboard accessibility for label
+        fileLabel.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                pdfFile.click();
+            }
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!pdfFile.files.length) return;
             const file = pdfFile.files[0];
             outputBox.textContent = '';
+            outputBox.classList.remove('error');
             downloadLink.style.display = 'none';
             spinner.style.display = 'block';
             uploadBtn.disabled = true;
@@ -145,12 +266,14 @@
                 }
                 const data = await response.json();
                 outputBox.textContent = JSON.stringify(data, null, 2);
+                outputBox.classList.remove('error');
                 // Show download link
                 const baseName = file.name.replace(/\.pdf$/i, '');
                 downloadLink.innerHTML = `<a href="/download/${baseName}" download>Download JSON</a>`;
                 downloadLink.style.display = 'block';
             } catch (err) {
                 outputBox.textContent = 'Error: ' + err.message;
+                outputBox.classList.add('error');
             } finally {
                 spinner.style.display = 'none';
                 uploadBtn.disabled = false;
