@@ -3,6 +3,23 @@ import json
 import re
 from collections import defaultdict
 import fitz  # PyMuPDF
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+import shutil
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- 1. CONFIGURATION & HEURISTICS ---
 
@@ -237,9 +254,68 @@ def run_batch_conversion(pdf_dir="pdfs", output_dir="output"):
                     json.dump(result_data, f, indent=4)
                 print(f"[SUCCESS] Saved structured JSON to: {json_path}\n")
 
+def clean_pycache(root_dir="."):
+    """Recursively remove all __pycache__ directories from the given root."""
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        if "__pycache__" in dirnames:
+            pycache_path = os.path.join(dirpath, "__pycache__")
+            try:
+                shutil.rmtree(pycache_path)
+                print(f"[CLEANUP] Removed: {pycache_path}")
+            except Exception as e:
+                print(f"[CLEANUP ERROR] Could not remove {pycache_path}: {e}")
+
+from fastapi import Request
+from fastapi import BackgroundTasks
+from fastapi import Depends
+from fastapi import status
+from fastapi import Response
+from fastapi import APIRouter
+from fastapi import HTTPException
+from fastapi import UploadFile, File
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
+@app.on_event("startup")
+def on_startup():
+    clean_pycache()
+
+@app.on_event("shutdown")
+def on_shutdown():
+    clean_pycache()
+
 # --- 4. SCRIPT ENTRYPOINT ---
 
+@app.post("/upload/")
+def upload_pdf(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+    save_path = os.path.join("pdfs", file.filename)
+    with open(save_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    result_data = process_pdf(save_path)
+    if not result_data:
+        raise HTTPException(status_code=500, detail="Failed to process PDF.")
+    json_path = os.path.join("output", f"{os.path.splitext(file.filename)[0]}.json")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(result_data, f, indent=4)
+    return JSONResponse(content=result_data)
+
+@app.get("/download/{filename}")
+def download_json(filename: str):
+    json_path = os.path.join("output", f"{os.path.splitext(filename)[0]}.json")
+    if not os.path.exists(json_path):
+        raise HTTPException(status_code=404, detail="JSON file not found.")
+    return FileResponse(json_path, media_type="application/json", filename=os.path.basename(json_path))
+
+@app.get("/", response_class=HTMLResponse)
+def serve_index():
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
 if __name__ == "__main__":
+    clean_pycache()
     input_directory = "pdfs"
     output_directory = "output"
     
