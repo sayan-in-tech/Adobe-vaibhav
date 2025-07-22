@@ -114,19 +114,6 @@ def clean_text(text):
     text = re.sub(r'^[•●■–-]\s*', '', text)
     return text
 
-def filter_duplicates(outline):
-    """
-    Removes duplicate outline entries based on (level, text, page).
-    """
-    seen = set()
-    filtered = []
-    for item in outline:
-        key = (item["level"], item["text"], item["page"])
-        if key not in seen:
-            seen.add(key)
-            filtered.append(item)
-    return filtered
-
 def build_outline(doc, body_size, heading_styles):
     """
     Constructs a structured outline using a combination of numeric prefixes,
@@ -178,6 +165,17 @@ def build_outline(doc, body_size, heading_styles):
 
     return filter_duplicates(outline)
 
+def filter_duplicates(outline):
+    """Removes duplicate entries from the outline list."""
+    seen = set()
+    unique_outline = []
+    for item in outline:
+        identifier = (item['text'], item['page'])
+        if identifier not in seen:
+            seen.add(identifier)
+            unique_outline.append(item)
+    return unique_outline
+
 # --- 3. MAIN PROCESSING PIPELINE ---
 
 def process_pdf(pdf_path):
@@ -198,13 +196,19 @@ def process_pdf(pdf_path):
     # Find the title using heuristics
     title = find_document_title(doc, heading_styles)
     
+    # If the title clearly indicates a form, skip outline generation and return an empty outline.
+    if "application form for" in title.lower():
+        print(f"[INFO] Document identified as a form. Generating empty outline.")
+        doc.close()
+        return {"title": title, "outline": []}
+
     # Build the outline using a combination of structural and stylistic cues
     outline = build_outline(doc, body_size, heading_styles)
     
     doc.close()
     
-    # Final check for forms or simple docs that shouldn't have an outline
-    if len(outline) <= 1 and ("form" in title.lower() or "invite" in title.lower()):
+    # Final check for simple docs like invitations that shouldn't have an outline
+    if len(outline) <= 1 and "invite" in title.lower():
         outline = []
         
     return {"title": title, "outline": outline}
